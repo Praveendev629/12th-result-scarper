@@ -15,6 +15,14 @@ HEADERS = {
     "Content-Type": "application/x-www-form-urlencoded"
 }
 
+@app.route('/', methods=['GET'])
+@app.route('/scrape', methods=['GET'])
+@app.route('/api/scrape', methods=['GET'])
+def health_check():
+    return jsonify({"success": True, "message": "Scraper API is running"}), 200
+
+@app.route('/', methods=['POST'])
+@app.route('/scrape', methods=['POST'])
 @app.route('/api/scrape', methods=['POST'])
 def scrape():
     data = request.json
