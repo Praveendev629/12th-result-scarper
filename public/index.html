@@ -1,0 +1,1039 @@
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+<style>
+    :root {
+        --primary: #6366f1;
+        --secondary: #a855f7;
+        --bg: #0f172a;
+        --card-bg: rgba(30, 41, 59, 0.7);
+        --text: #f8fafc;
+    }
+
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family: 'Outfit', sans-serif;
+    }
+
+    body {
+        background-color: var(--bg);
+        background-image:
+            radial-gradient(at 0% 0%, hsla(253, 16%, 7%, 1) 0, transparent 50%),
+            radial-gradient(at 50% 0%, hsla(225, 39%, 30%, 1) 0, transparent 50%),
+            radial-gradient(at 100% 0%, hsla(339, 49%, 30%, 1) 0, transparent 50%);
+        color: var(--text);
+        min-height: 100vh;
+        padding: 2rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .container {
+        width: 100%;
+        max-width: 1200px;
+    }
+
+    header {
+        text-align: center;
+        margin-bottom: 3rem;
+        animation: fadeIn 1s ease-out;
+    }
+
+    h1 {
+        font-size: 3rem;
+        font-weight: 700;
+        background: linear-gradient(to right, var(--primary), var(--secondary));
+        background-clip: text;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 0.5rem;
+    }
+
+    p.subtitle {
+        color: #94a3b8;
+        font-size: 1.1rem;
+    }
+
+    .main-grid {
+        display: grid;
+        grid-template-columns: 1fr 2fr;
+        gap: 2rem;
+    }
+
+    .input-card {
+        background: var(--card-bg);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 1rem;
+        padding: 2rem;
+        height: fit-content;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+
+    .input-group {
+        margin-bottom: 1.5rem;
+    }
+
+    label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        color: #e2e8f0;
+    }
+
+    textarea {
+        width: 100%;
+        height: 150px;
+        background: rgba(15, 23, 42, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 0.5rem;
+        padding: 1rem;
+        color: #fff;
+        font-family: 'Courier New', monospace;
+        resize: vertical;
+        transition: border-color 0.3s;
+    }
+
+    textarea:focus {
+        outline: none;
+        border-color: var(--primary);
+    }
+
+    .actions {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1rem;
+        flex-wrap: wrap;
+    }
+
+    button {
+        flex: 1;
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s, opacity 0.2s;
+        white-space: nowrap;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        color: white;
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    }
+
+    .btn-secondary {
+        background: rgba(255, 255, 255, 0.05);
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-success {
+        background: rgba(16, 185, 129, 0.2);
+        color: #34d399;
+        border: 1px solid rgba(52, 211, 153, 0.2);
+    }
+
+    button:hover {
+        transform: translateY(-2px);
+        opacity: 0.9;
+    }
+
+    button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .results-card {
+        background: var(--card-bg);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 1rem;
+        padding: 2rem;
+        min-height: 200px;
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 2rem;
+    }
+
+    .results-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .status-badge {
+        background: rgba(99, 102, 241, 0.2);
+        color: #818cf8;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.875rem;
+    }
+
+    /* Table */
+    .table-container {
+        overflow-x: auto;
+        flex-grow: 1;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9rem;
+    }
+
+    th,
+    td {
+        text-align: left;
+        padding: 1rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    th {
+        font-weight: 600;
+        color: #94a3b8;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.05em;
+        white-space: nowrap;
+    }
+
+    tr:hover {
+        background: rgba(255, 255, 255, 0.02);
+    }
+
+    /* Status colors */
+    .status-pass {
+        color: #4ade80;
+        font-weight: bold;
+    }
+
+    .status-fail {
+        color: #f87171;
+        font-weight: bold;
+    }
+
+    .status-error {
+        color: #fca5a5;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Loading Spinner */
+    .spinner {
+        display: none;
+        width: 24px;
+        height: 24px;
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top-color: #fff;
+        animation: spin 1s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    /* FAB and Mobile Modal */
+    .fab {
+        display: none;
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        /* Match theme */
+        color: white;
+        font-size: 1.5rem;
+        border: none;
+        box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4);
+        z-index: 1000;
+        cursor: pointer;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.2s;
+    }
+
+    .fab:hover {
+        transform: scale(1.1);
+    }
+
+    .mobile-close-btn {
+        display: none;
+        position: absolute;
+        top: 1rem;
+        right: 1.5rem;
+        font-size: 2.5rem;
+        color: #94a3b8;
+        cursor: pointer;
+        line-height: 1;
+        z-index: 1001;
+    }
+
+    /* Mobile Responsiveness */
+    @media (max-width: 768px) {
+        body {
+            padding: 1rem;
+            padding-bottom: 6rem;
+            /* Space for FAB */
+        }
+
+        h1 {
+            font-size: 2rem;
+            word-wrap: break-word;
+            /* Prevent overflow on very small screens */
+        }
+
+        .main-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .fab {
+            display: flex;
+        }
+
+        .mobile-close-btn {
+            display: block;
+        }
+
+        /* Input Card becomes a Modal */
+        .input-card {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            z-index: 9999;
+            border-radius: 0;
+            overflow-y: auto;
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            margin: 0;
+            padding: 2rem;
+            padding-top: 4rem;
+            /* Space for close button */
+            background: #0f172a;
+            /* Solid background for modal */
+        }
+
+        .input-card.active {
+            transform: translateY(0);
+        }
+
+        .input-card,
+        .results-card {
+            padding: 1.5rem;
+        }
+
+        .actions {
+            flex-direction: column;
+            width: 100%;
+        }
+
+        button {
+            width: 100%;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Adjust table font size for mobile if needed, though scroll is safer */
+        th,
+        td {
+            padding: 0.75rem 0.5rem;
+            font-size: 0.8rem;
+        }
+    }
+</style>
+</head>
+
+<body>
+
+    <header>
+        <h1>TN Results Fetcher</h1>
+        <p class="subtitle">Bulk Scraper Utility</p>
+    </header>
+
+    <div class="container main-grid">
+
+        <!-- Logic / Input Section -->
+        <div class="input-card">
+            <div class="mobile-close-btn" onclick="toggleInputCard()">×</div>
+            <div class="input-group">
+                <label for="regno-input">Register Numbers (One per line)</label>
+                <textarea id="regno-input" placeholder="123456&#10;123457&#10;123458"></textarea>
+            </div>
+
+            <div class="input-group">
+                <label for="dob-input">Dates of Birth (One per line)</label>
+                <textarea id="dob-input" placeholder="01/01/2005&#10;02/02/2005&#10;03/03/2005"></textarea>
+                <p style="font-size: 0.8rem; color: #64748b; margin-top: 0.5rem;">
+                    Match lines with Reg No. If all have same DOB, enter just one line.
+                </p>
+            </div>
+
+            <div class="actions">
+                <button id="scrape-btn" class="btn-primary" onclick="startScraping()">
+                    <span id="btn-text">Start Scraping</span>
+                    <div id="btn-spinner" class="spinner"></div>
+                </button>
+                <button class="btn-secondary" onclick="exportToCSV()">Export CSV</button>
+                <button class="btn-success" onclick="exportToPDF()">Export PDF</button>
+            </div>
+
+            <div style="margin-top: 1rem;">
+                <p id="progress-text" style="color: #94a3b8; font-size: 0.9rem;">Ready to start</p>
+                <div
+                    style="width: 100%; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; margin-top: 0.5rem; overflow: hidden;">
+                    <div id="progress-bar"
+                        style="width: 0%; height: 100%; background: var(--primary); transition: width 0.3s;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <!-- Output Section with Dynamic Tables -->
+            <div id="results-container">
+                <div class="results-card" id="initial-empty-state">
+                    <div class="results-header">
+                        <h3>Results</h3>
+                        <span class="status-badge">0 Found</span>
+                    </div>
+                    <div class="table-container">
+                        <table class="results-table">
+                            <thead>
+                                <tr>
+                                    <th>Reg No</th>
+                                    <th>DOB</th>
+                                    <th>Name</th>
+                                    <th>Total</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ranking Section -->
+            <div class="results-card" style="margin-top: 2rem;">
+                <div class="results-header">
+                    <h3>🏆 Top Rankers (All Groups)</h3>
+                </div>
+                <div class="table-container">
+                    <table id="ranking-table">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Name</th>
+                                <th>Group</th>
+                                <th>Total Marks</th>
+                                <th>Result</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Ranking Rows -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Mobile FAB -->
+    <button id="mobile-toggle-btn" class="fab" onclick="toggleInputCard()">
+        ✏️
+    </button>
+
+    <script>
+        let resultsData = [];
+        let isScraping = false;
+
+        // Define standard subject order
+        const PREFERRED_SUBJECT_ORDER = ['LANGUAGE', 'ENGLISH', 'TAMIL', 'MATHEMATICS', 'PHYSICS', 'CHEMISTRY', 'BIOLOGY', 'COMPUTER SCIENCE', 'HISTORY', 'GEOGRAPHY', 'COMMERCE', 'ACCOUNTANCY'];
+
+        async function startScraping() {
+            if (isScraping) return;
+
+            const regnoText = document.getElementById('regno-input').value.trim();
+            const dobText = document.getElementById('dob-input').value.trim();
+
+            if (!regnoText || !dobText) {
+                alert("Please enter both Register Numbers and DOBs");
+                return;
+            }
+
+            const regnos = regnoText.split('\n').map(s => s.trim()).filter(s => s);
+            const dobs = dobText.split('\n').map(s => s.trim()).filter(s => s);
+
+            if (regnos.length === 0) return;
+
+            // UI Reset
+            isScraping = true;
+            document.getElementById('scrape-btn').disabled = true;
+            document.getElementById('btn-text').style.display = 'none';
+            document.getElementById('btn-spinner').style.display = 'block';
+
+            // Auto-close modal on mobile when starting
+            if (window.innerWidth <= 768) {
+                toggleInputCard();
+            }
+
+            // Clear previous results container but keep the container itself
+            document.getElementById('results-container').innerHTML = '';
+            document.querySelector('#ranking-table tbody').innerHTML = '';
+
+            resultsData = [];
+
+            // Initial Work List
+            let workQueue = [];
+            for (let i = 0; i < regnos.length; i++) {
+                workQueue.push({
+                    r: regnos[i],
+                    d: dobs[i] || dobs[0],
+                    originalIndex: i
+                });
+            }
+
+            const totalItems = workQueue.length;
+            let finalResultsMap = new Map(); // Store success results by regno to avoid duplicates in display logic if needed
+
+            // Retry Loop (up to 10 times + initial try = 11 passes max, but user asked for "uptoten time" for retries, so let's do initial + 10 retries)
+            // Actually user said "after at the last do it again the errored number untill get the value try uptoten time"
+            // So: Initial fetch. Then if errors, retry those errors. Repeat up to 10 retry cycles.
+
+            const MAX_RETRIES = 10;
+            let retryCount = 0;
+
+            while (workQueue.length > 0 && retryCount <= MAX_RETRIES) {
+
+                let nextRetryQueue = [];
+                let iterationLabel = retryCount === 0 ? "Fetching" : `Retrying (Attempt ${retryCount})`;
+
+                for (let i = 0; i < workQueue.length; i++) {
+                    const item = workQueue[i];
+
+                    // Update progress only for the first pass to avoid confusing UI, or show simple status
+                    if (retryCount === 0) {
+                        updateProgress(i, totalItems, `${iterationLabel} ${item.r}...`);
+                    } else {
+                        updateProgress(totalItems - workQueue.length + i, totalItems, `${iterationLabel} ${item.r}...`);
+                    }
+
+                    const result = await fetchResult(item.r, item.d);
+
+                    if (result.success) {
+                        // Success
+                        finalResultsMap.set(item.r + '-' + item.d, result.data);
+                    } else {
+                        // Failed
+                        item.lastError = result.error; // Capture the error
+                        nextRetryQueue.push(item);
+                    }
+
+                    // Update UI with what we have so far
+                    updateResultsData(finalResultsMap, nextRetryQueue, false);
+                    renderGroupedTables();
+                    updateRankings();
+
+                    // Small delay to be nice to server
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
+
+                workQueue = nextRetryQueue;
+                retryCount++;
+
+                if (workQueue.length > 0) {
+                    // Wait a bit longer between retry batches
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                }
+            }
+
+            // After all retries, if some still failed, show their last error
+            if (workQueue.length > 0) {
+                updateResultsData(finalResultsMap, workQueue, true);
+                renderGroupedTables(); // Ensure the error is rendered
+            }
+
+            updateProgress(totalItems, totalItems, "Completed");
+            isScraping = false;
+            document.getElementById('scrape-btn').disabled = false;
+            document.getElementById('btn-text').style.display = 'block';
+            document.getElementById('btn-spinner').style.display = 'none';
+        }
+
+        async function fetchResult(regno, dob) {
+            try {
+                const response = await fetch('/api/scrape', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ regno, dob })
+                });
+
+                const result = await response.json();
+                return result;
+
+            } catch (error) {
+                console.error(error);
+                return { success: false, error: "Network Error" };
+            }
+        }
+
+        function updateResultsData(successMap, failedQueue, isFinal) {
+            // Rebuild the global resultsData array for UI rendering
+            resultsData = [];
+
+            // Add successes
+            for (const data of successMap.values()) {
+                resultsData.push(data);
+            }
+
+            // Add failures/pending
+            for (const item of failedQueue) {
+                let errorMsg = isFinal ? (item.lastError || "Failed") : "Retrying...";
+                resultsData.push({
+                    REGNO: item.r,
+                    DOB: item.d,
+                    error: errorMsg,
+                    NAME: isFinal ? "Error" : "Pending...",
+                    SUBJECTS: {}
+                });
+            }
+        }
+
+        function getSubjectSignature(student) {
+            if (!student.SUBJECTS || Object.keys(student.SUBJECTS).length === 0) return "No Subjects";
+            // Sort keys to ensure consistent signature
+            return Object.keys(student.SUBJECTS).sort().join(',');
+        }
+
+        function sortSubjects(subjectsArray) {
+            return subjectsArray.sort((a, b) => {
+                const aUpper = a.toUpperCase();
+                const bUpper = b.toUpperCase();
+
+                const idxA = PREFERRED_SUBJECT_ORDER.findIndex(p => aUpper.includes(p));
+                const idxB = PREFERRED_SUBJECT_ORDER.findIndex(p => bUpper.includes(p));
+
+                if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+                if (idxA !== -1) return -1;
+                if (idxB !== -1) return 1;
+
+                return a.localeCompare(b);
+            });
+        }
+
+        function renderGroupedTables() {
+            const container = document.getElementById('results-container');
+            container.innerHTML = '';
+
+            if (resultsData.length === 0) return;
+
+            // Group students
+            const groups = {};
+            resultsData.forEach(student => {
+                let sig;
+                if (student.error) {
+                    sig = 'Errors';
+                } else {
+                    sig = getSubjectSignature(student);
+                }
+
+                if (!groups[sig]) groups[sig] = [];
+                groups[sig].push(student);
+            });
+
+            // Sort groups: explicit errors last, larger groups first
+            const signatures = Object.keys(groups).sort((a, b) => {
+                if (a === 'Errors') return 1;
+                if (b === 'Errors') return -1;
+                return groups[b].length - groups[a].length;
+            });
+
+            // Iterate groups and render tables
+            signatures.forEach(signature => {
+                const students = groups[signature];
+                const subjects = signature === "Errors" || signature === "No Subjects" ? [] : signature.split(',');
+                const sortedSubjects = sortSubjects(subjects);
+
+                // Create Card
+                const card = document.createElement('div');
+                card.className = 'results-card';
+                card.style.marginBottom = '3rem';
+                card.style.borderTop = '2px solid rgba(255,255,255,0.1)';
+
+                // Determine Title
+                let groupName = "Subject Group";
+                if (signature === 'Errors') {
+                    groupName = "⚠️ Failed / Errors";
+                    card.style.borderTopColor = '#f87171';
+                }
+                else if (sortedSubjects.includes('BIOLOGY') && sortedSubjects.includes('MATHEMATICS')) groupName = "Biology & Maths Group";
+                else if (sortedSubjects.includes('COMPUTER SCIENCE') && sortedSubjects.includes('MATHEMATICS')) groupName = "Computer Science Group";
+                else if (sortedSubjects.includes('COMMERCE') && sortedSubjects.includes('ACCOUNTANCY')) groupName = "Commerce Group";
+                else if (sortedSubjects.includes('BIOLOGY')) groupName = "Pure Science (Bio) Group";
+                else {
+                    if (sortedSubjects.length > 0) {
+                        const mainSubs = sortedSubjects.filter(s => !['LANGUAGE', 'ENGLISH', 'TAMIL'].includes(s.toUpperCase()));
+                        if (mainSubs.length > 0) groupName = mainSubs.join(' + ') + " Group";
+                        else groupName = "Language / General Group";
+                    }
+                }
+
+                const headerHtml = `
+                    <div class="results-header">
+                        <div>
+                            <h3>${groupName}</h3>
+                            <p style="font-size: 0.9rem; color: #94a3b8; margin-top: 0.2rem;">
+                                Subjects: ${sortedSubjects.join(', ') || 'N/A'}
+                            </p>
+                        </div>
+                        <span class="status-badge">${students.length} Student(s)</span>
+                    </div>
+                `;
+
+                // Build Table Header
+                let thHtml = `<th>Reg No</th><th>DOB</th><th>Name</th>`;
+                sortedSubjects.forEach(s => thHtml += `<th>${s}</th>`);
+                thHtml += `<th>Total</th><th>Status</th>`;
+
+                // Build Table Body
+                let tbodyHtml = '';
+                students.forEach(student => {
+                    let tr = '<tr>';
+                    tr += `<td>${student.REGNO}</td><td>${student.DOB}</td><td><b>${student.NAME}</b></td>`;
+
+                    if (signature === 'Errors') {
+                        tr = `<tr><td>${student.REGNO}</td><td>${student.DOB}</td><td colspan="${3 + sortedSubjects.length}" class="status-error">${student.error}</td></tr>`;
+                    } else {
+                        sortedSubjects.forEach(sub => {
+                            const mark = student.SUBJECTS[sub] || '-';
+                            tr += `<td>${mark}</td>`;
+                        });
+
+                        const statusClass = student.RESULT === 'PASS' ? 'status-pass' : 'status-fail';
+                        tr += `<td><b>${student.TOTAL || '-'}</b></td><td><span class="${statusClass}">${student.RESULT || '-'}</span></td></tr>`;
+                    }
+                    tbodyHtml += tr;
+                });
+
+                card.innerHTML = `
+                    ${headerHtml}
+                    <div class="table-container">
+                        <table class="results-table">
+                            <thead><tr>${thHtml}</tr></thead>
+                            <tbody>${tbodyHtml}</tbody>
+                        </table>
+                    </div>
+                `;
+
+                container.appendChild(card);
+            });
+        }
+
+        function updateRankings() {
+            // Filter valid results
+            const validResults = resultsData.filter(d => !d.error && d.TOTAL);
+
+            // Sort by Total Descending
+            validResults.sort((a, b) => {
+                const totalA = parseInt(a.TOTAL) || 0;
+                const totalB = parseInt(b.TOTAL) || 0;
+                return totalB - totalA;
+            });
+
+            const tbody = document.querySelector('#ranking-table tbody');
+            tbody.innerHTML = '';
+
+            if (validResults.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5">No rankings available</td></tr>';
+                return;
+            }
+
+            validResults.forEach((student, index) => {
+                const tr = document.createElement('tr');
+                let rankIcon = '';
+                if (index === 0) rankIcon = '🥇 ';
+                else if (index === 1) rankIcon = '🥈 ';
+                else if (index === 2) rankIcon = '🥉 ';
+                else rankIcon = `#${index + 1}`;
+
+                // Determine group simply
+                const subs = Object.keys(student.SUBJECTS || {});
+                let group = "General";
+                if (subs.includes('BIOLOGY')) group = "Bio";
+                else if (subs.includes('COMPUTER SCIENCE')) group = "CS";
+                else if (subs.includes('COMMERCE')) group = "Commerce";
+
+                tr.innerHTML = `
+                    <td>${rankIcon}</td>
+                    <td><b>${student.NAME}</b></td>
+                    <td>${group}</td>
+                    <td>${student.TOTAL}</td>
+                    <td>${student.RESULT}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function updateProgress(current, total, text) {
+            const percent = (current / total) * 100;
+            document.getElementById('progress-bar').style.width = `${percent}%`;
+            if (text) document.getElementById('progress-text').innerText = text;
+        }
+
+        function exportToCSV() {
+            if (resultsData.length === 0) {
+                alert("No data to export");
+                return;
+            }
+
+            // For CSV, we can't easily do multiple tables in one simple CSV.
+            // Strategy: Create a "superset" of all subjects found in resultsData to have one big table.
+
+            let allSubjects = new Set();
+            resultsData.forEach(s => {
+                if (s.SUBJECTS) Object.keys(s.SUBJECTS).forEach(sub => allSubjects.add(sub));
+            });
+            const sortedAllSubjects = sortSubjects(Array.from(allSubjects));
+
+            let headers = ['Reg No', 'DOB', 'Name', 'Group'];
+            sortedAllSubjects.forEach(s => headers.push(s));
+            headers.push('Total', 'Result');
+
+            const csvRows = [headers.join(',')];
+
+            resultsData.forEach(row => {
+                if (row.error) return;
+
+                // Determine group
+                const subs = Object.keys(row.SUBJECTS || {});
+                let group = "General";
+                if (subs.includes('BIOLOGY')) group = "Bio";
+                else if (subs.includes('COMPUTER SCIENCE')) group = "CS";
+
+                let values = [
+                    row.REGNO,
+                    row.DOB,
+                    row.NAME,
+                    group
+                ];
+
+                sortedAllSubjects.forEach(sub => {
+                    values.push(row.SUBJECTS && row.SUBJECTS[sub] ? row.SUBJECTS[sub] : '-');
+                });
+
+                values.push(row.TOTAL || '0');
+                values.push(row.RESULT || '-');
+
+                csvRows.push(values.map(v => `"${v}"`).join(','));
+            });
+
+            const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'tn_results_grouped.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        function exportToPDF() {
+            if (resultsData.length === 0) {
+                alert("No data to export");
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('l');
+
+            doc.setFontSize(18);
+            doc.text("TN Examination Results Report", 14, 20);
+            doc.setFontSize(10);
+            doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 28);
+
+            let currentY = 35;
+
+            // Group again for PDF
+            const groups = {};
+            resultsData.forEach(student => {
+                if (!student.error) {
+                    const sig = getSubjectSignature(student);
+                    if (!groups[sig]) groups[sig] = [];
+                    groups[sig].push(student);
+                }
+            });
+
+            Object.keys(groups).forEach(signature => {
+                const students = groups[signature];
+                const subjects = signature.split(',');
+                const sortedSubjects = sortSubjects(subjects);
+
+                // Title
+                let groupName = "Common Group";
+                if (sortedSubjects.includes('BIOLOGY')) groupName = "Biology Group";
+                else if (sortedSubjects.includes('COMPUTER SCIENCE')) groupName = "Computer Science Group";
+
+                // Check page space
+                if (currentY > 180) {
+                    doc.addPage();
+                    currentY = 20;
+                }
+
+                doc.setFontSize(14);
+                doc.text(`${groupName} (${students.length})`, 14, currentY);
+                currentY += 5;
+
+                let head = [['Reg No', 'DOB', 'Name']];
+                sortedSubjects.forEach(s => head[0].push(s));
+                head[0].push('Total');
+                head[0].push('Result');
+
+                let body = [];
+                students.forEach(row => {
+                    let vals = [row.REGNO, row.DOB, row.NAME];
+                    sortedSubjects.forEach(sub => {
+                        vals.push(row.SUBJECTS && row.SUBJECTS[sub] ? row.SUBJECTS[sub] : '-');
+                    });
+                    vals.push(row.TOTAL || '-');
+                    vals.push(row.RESULT || '-');
+                    body.push(vals);
+                });
+
+                doc.autoTable({
+                    head: head,
+                    body: body,
+                    startY: currentY,
+                    theme: 'grid',
+                    styles: { fontSize: 8 },
+                    margin: { top: 20 }
+                });
+
+                currentY = doc.lastAutoTable.finalY + 15;
+            });
+
+            // --- Add Rankings Section ---
+
+            const validResults = resultsData.filter(d => !d.error && d.TOTAL);
+
+            if (validResults.length > 0) {
+                validResults.sort((a, b) => {
+                    const totalA = parseInt(a.TOTAL) || 0;
+                    const totalB = parseInt(b.TOTAL) || 0;
+                    return totalB - totalA;
+                });
+
+                if (currentY > 180) {
+                    doc.addPage();
+                    currentY = 20;
+                }
+
+                doc.setFontSize(14);
+                doc.text("🏆 Top Rankers", 14, currentY);
+                currentY += 5;
+
+                let rankHead = [['Rank', 'Name', 'Group', 'Total', 'Result']];
+                let rankBody = [];
+
+                validResults.forEach((student, index) => {
+                    // Determine group
+                    const subs = Object.keys(student.SUBJECTS || {});
+                    let group = "General";
+                    if (subs.includes('BIOLOGY')) group = "Bio";
+                    else if (subs.includes('COMPUTER SCIENCE')) group = "CS";
+                    else if (subs.includes('COMMERCE')) group = "Commerce";
+
+                    rankBody.push([
+                        index + 1,
+                        student.NAME,
+                        group,
+                        student.TOTAL,
+                        student.RESULT
+                    ]);
+                });
+
+                doc.autoTable({
+                    head: rankHead,
+                    body: rankBody,
+                    startY: currentY,
+                    theme: 'striped', // Make it distinct
+                    styles: { fontSize: 8 },
+                    margin: { top: 20 }
+                });
+            }
+
+            doc.save("tn_results_grouped.pdf");
+            doc.save("tn_results_grouped.pdf");
+        }
+
+        function toggleInputCard() {
+            document.querySelector('.input-card').classList.toggle('active');
+        }
+    </script>
+    <footer class="creator-signature">
+        <p>Made with ❤️ by <span class="highlight">Praveen</span></p>
+    </footer>
+
+    <style>
+        .creator-signature {
+            margin-top: 3rem;
+            text-align: center;
+            padding: 1rem;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .creator-signature p {
+            font-size: 1.2rem;
+            color: #94a3b8;
+            font-weight: 300;
+        }
+
+        .creator-signature .highlight {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 700;
+            font-size: 1.4rem;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-5px);
+            }
+
+            100% {
+                transform: translateY(0px);
+            }
+        }
+    </style>
+</body>
+
+</html>
