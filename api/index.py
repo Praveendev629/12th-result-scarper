@@ -10,7 +10,7 @@ app = Flask(__name__)
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-    "Referer": "https://tnresults.nic.in/2026_HSCtnresults/2026_5341hsc.htm",
+    "Referer": "https://tnresults.nic.in/rdopex.htm",
     "Origin": "https://tnresults.nic.in",
     "Content-Type": "application/x-www-form-urlencoded"
 }
@@ -24,7 +24,7 @@ def scrape():
     if not regno or not dob:
         return jsonify({"success": False, "error": "Missing regno or dob"}), 400
 
-    url = "https://tnresults.nic.in/2026_HSCtnresults/2026_9994hsc.asp"
+    url = "https://tnresults.nic.in/rdopex.asp"
     payload = {
         "regno": regno,
         "dob": dob,
