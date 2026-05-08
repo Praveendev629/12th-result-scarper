@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TN Results Fetcher</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+  <style>
+    :root {
+      --primary  : #6366f1;
+      --secondary: #a855f7;
+      --bg       : #0f172a;
+      --card-bg  : rgba(30,41,59,0.7);
+      --text     : #f8fafc;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;font-family:'Outfit',sans-serif;}
+    body{
+      background-color:var(--bg);
+      background-image:
+        radial-gradient(at 0% 0%,  hsla(253,16%,7%,1)  0,transparent 50%),
+        radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0,transparent 50%),
+        radial-gradient(at 100% 0%,hsla(339,49%,30%,1) 0,transparent 50%);
+      color:var(--text);
+      min-height:100vh;
+      padding:2rem;
+      display:flex;flex-direction:column;align-items:center;
+    }
+    .container{width:100%;max-width:1200px;}
+    header{text-align:center;margin-bottom:3rem;animation:fadeIn 1s ease-out;}
+    h1{
+      font-size:3rem;font-weight:700;
+      background:linear-gradient(to right,var(--primary),var(--secondary));
+      background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;
+      margin-bottom:.5rem;
+    }
+    p.subtitle{color:#94a3b8;font-size:1.1rem;}
+    .main-grid{display:grid;grid-template-columns:1fr 2fr;gap:2rem;}
+    .input-card{
+      background:var(--card-bg);backdrop-filter:blur(12px);
+      border:1px solid rgba(255,255,255,.1);border-radius:1rem;
+      padding:2rem;height:fit-content;
+      box-shadow:0 4px 6px -1px rgba(0,0,0,.1);
+    }
+    .input-group{margin-bottom:1.5rem;}
+    label{display:block;margin-bottom:.5rem;font-weight:600;color:#e2e8f0;}
+    textarea{
+      width:100%;height:150px;
+      background:rgba(15,23,42,.6);border:1px solid rgba(255,255,255,.1);
+      border-radius:.5rem;padding:1rem;color:#fff;
+      font-family:'Courier New',monospace;resize:vertical;
+      transition:border-color .3s;
+    }
+    textarea:focus{outline:none;border-color:var(--primary);}
+    .hint{font-size:.8rem;color:#64748b;margin-top:.5rem;}
+    .actions{display:flex;gap:1rem;margin-top:1rem;flex-wrap:wrap;}
+    button{
+      flex:1;padding:.75rem 1.5rem;border:none;border-radius:.5rem;
+      font-weight:600;cursor:pointer;transition:transform .2s,opacity .2s;
+      white-space:nowrap;font-family:'Outfit',sans-serif;
+    }
+    .btn-primary{
+      background:linear-gradient(135deg,var(--primary),var(--secondary));
+      color:#fff;box-shadow:0 4px 12px rgba(99,102,241,.3);
+    }
+    .btn-secondary{background:rgba(255,255,255,.05);color:#fff;border:1px solid rgba(255,255,255,.1);}
+    .btn-success{background:rgba(16,185,129,.2);color:#34d399;border:1px solid rgba(52,211,153,.2);}
+    button:hover{transform:translateY(-2px);opacity:.9;}
+    button:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+
+    /* Progress */
+    .progress-wrap{margin-top:1rem;}
+    #progress-text{color:#94a3b8;font-size:.9rem;}
+    .progress-bg{
+      width:100%;height:4px;background:rgba(255,255,255,.1);
+      border-radius:2px;margin-top:.5rem;overflow:hidden;
+    }
+    #progress-bar{width:0%;height:100%;background:var(--primary);transition:width .3s;}
+
+    /* Results */
+    .results-card{
+      background:var(--card-bg);backdrop-filter:blur(12px);
+      border:1px solid rgba(255,255,255,.1);border-radius:1rem;
+      padding:2rem;min-height:200px;display:flex;flex-direction:column;
+      margin-bottom:2rem;
+    }
+    .results-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem;gap:1rem;}
+    .results-header h3{font-size:1.1rem;font-weight:700;}
+    .results-header p{font-size:.85rem;color:#94a3b8;margin-top:.2rem;}
+    .status-badge{
+      background:rgba(99,102,241,.2);color:#818cf8;
+      padding:.25rem .75rem;border-radius:9999px;font-size:.875rem;
+      white-space:nowrap;flex-shrink:0;
+    }
+    .table-container{overflow-x:auto;flex-grow:1;}
+    table{width:100%;border-collapse:collapse;font-size:.9rem;}
+    th,td{text-align:left;padding:1rem;border-bottom:1px solid rgba(255,255,255,.05);}
+    th{font-weight:600;color:#94a3b8;text-transform:uppercase;font-size:.75rem;letter-spacing:.05em;white-space:nowrap;}
+    tr:hover{background:rgba(255,255,255,.02);}
+    .status-pass{color:#4ade80;font-weight:700;}
+    .status-fail{color:#f87171;font-weight:700;}
+    .status-error{color:#fca5a5;}
+
+    /* Spinner */
+    .spinner{
+      display:none;width:20px;height:20px;
+      border:3px solid rgba(255,255,255,.3);border-radius:50%;
+      border-top-color:#fff;animation:spin 1s ease-in-out infinite;
+    }
+    .btn-inner{display:flex;align-items:center;justify-content:center;gap:8px;}
+
+    /* FAB */
+    .fab{
+      display:none;position:fixed;bottom:2rem;right:2rem;
+      width:60px;height:60px;border-radius:50%;
+      background:linear-gradient(135deg,var(--primary),var(--secondary));
+      color:#fff;font-size:1.5rem;border:none;
+      box-shadow:0 4px 20px rgba(99,102,241,.4);z-index:1000;
+      cursor:pointer;align-items:center;justify-content:center;
+      transition:transform .2s;
+    }
+    .fab:hover{transform:scale(1.1);}
+    .mobile-close-btn{
+      display:none;position:absolute;top:1rem;right:1.5rem;
+      font-size:2.5rem;color:#94a3b8;cursor:pointer;
+    }
+
+    /* Empty state */
+    .empty-state{
+      display:flex;flex-direction:column;align-items:center;
+      justify-content:center;gap:1rem;padding:3rem;
+      color:#475569;text-align:center;
+    }
+    .empty-state .icon{font-size:3rem;}
+    .empty-state p{font-size:.95rem;}
+
+    /* Marks pill colors */
+    .mark-high{color:#4ade80;}
+    .mark-med{color:#fbbf24;}
+    .mark-low{color:#f87171;}
+
+    /* Footer */
+    .creator-signature{
+      margin-top:3rem;text-align:center;padding:1rem;
+      animation:float 3s ease-in-out infinite;
+    }
+    .creator-signature p{font-size:1.2rem;color:#94a3b8;font-weight:300;}
+    .creator-signature .highlight{
+      background:linear-gradient(135deg,#FFD700,#FFA500);
+      background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;
+      font-weight:700;font-size:1.4rem;
+    }
+
+    /* Animations */
+    @keyframes fadeIn{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+    @keyframes spin{to{transform:rotate(360deg);}}
+    @keyframes float{0%{transform:translateY(0);}50%{transform:translateY(-5px);}100%{transform:translateY(0);}}
+
+    /* Mobile */
+    @media(max-width:768px){
+      body{padding:1rem;padding-bottom:6rem;}
+      h1{font-size:2rem;}
+      .main-grid{display:flex;flex-direction:column;}
+      .fab{display:flex;}
+      .mobile-close-btn{display:block;}
+      .input-card{
+        position:fixed;top:0;left:0;width:100%;height:100vh;z-index:9999;
+        border-radius:0;overflow-y:auto;
+        transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);
+        padding:2rem;padding-top:4rem;background:#0f172a;
+      }
+      .input-card.active{transform:translateY(0);}
+      .actions{flex-direction:column;}
+      th,td{padding:.75rem .5rem;font-size:.8rem;}
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>TN Results Fetcher</h1>
+  <p class="subtitle">HSE(+2) March 2026 · Bulk Scraper Utility</p>
+</header>
+
+<div class="container main-grid">
+
+  <!-- ── INPUT CARD ── -->
+  <div class="input-card">
+    <div class="mobile-close-btn" onclick="toggleInputCard()">×</div>
+
+    <div class="input-group">
+      <label for="regno-input">Register Numbers <span style="color:#64748b;font-weight:400">(one per line)</span></label>
+      <textarea id="regno-input" placeholder="3551328&#10;3551329&#10;3551330" spellcheck="false"></textarea>
+    </div>
+
+    <div class="input-group">
+      <label for="dob-input">Dates of Birth <span style="color:#64748b;font-weight:400">(one per line)</span></label>
+      <textarea id="dob-input" placeholder="22/11/2008&#10;15/03/2008&#10;01/06/2008" spellcheck="false"></textarea>
+      <p class="hint">Match lines with Reg No. If all share the same DOB, enter just one line.</p>
+    </div>
+
+    <div class="actions">
+      <button id="scrape-btn" class="btn-primary" onclick="startScraping()">
+        <div class="btn-inner">
+          <span id="btn-text">▶ Start Scraping</span>
+          <div class="spinner" id="btn-spinner"></div>
+        </div>
+      </button>
+      <button class="btn-secondary" onclick="exportToCSV()">⬇ CSV</button>
+      <button class="btn-success"   onclick="exportToPDF()">⬇ PDF</button>
+    </div>
+
+    <div class="progress-wrap">
+      <p id="progress-text">Ready to start</p>
+      <div class="progress-bg"><div id="progress-bar"></div></div>
+    </div>
+  </div>
+
+  <!-- ── RIGHT PANEL ── -->
+  <div>
+    <!-- Results grouped by subject -->
+    <div id="results-container">
+      <div class="results-card">
+        <div class="results-header">
+          <h3>Results</h3>
+          <span class="status-badge">0 Found</span>
+        </div>
+        <div class="empty-state">
+          <div class="icon">📋</div>
+          <p>Enter register numbers and dates of birth,<br/>then click <strong>Start Scraping</strong>.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rankings -->
+    <div class="results-card" style="margin-top:0;">
+      <div class="results-header">
+        <h3>🏆 Top Rankers (All Groups)</h3>
+      </div>
+      <div class="table-container">
+        <table id="ranking-table">
+          <thead>
+            <tr>
+              <th>Rank</th><th>Name</th><th>Reg No</th><th>Group</th><th>Total</th><th>Result</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td colspan="6" style="color:#475569;text-align:center;padding:2rem;">No data yet</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Mobile FAB -->
+<button class="fab" onclick="toggleInputCard()">✏️</button>
+
+<footer class="creator-signature">
+  <p>Made with ❤️ by <span class="highlight">Praveen. S</span></p>
+</footer>
+
+<script>
+/* ─────────────────────────────────────────────
+   CONFIG
+───────────────────────────────────────────── */
+let resultsData = [];
+let isScraping  = false;
+const MAX_RETRIES = 10;
+
+const PREFERRED_ORDER = [
+  'LANGUAGE','ENGLISH','TAMIL','MATHEMATICS',
+  'PHYSICS','CHEMISTRY','BIOLOGY','COMPUTER SCIENCE',
+  'HISTORY','GEOGRAPHY','COMMERCE','ACCOUNTANCY'
+];
+
+/* ─────────────────────────────────────────────
+   HELPERS
+───────────────────────────────────────────── */
+function sortSubjects(arr) {
+  return arr.sort((a,b)=>{
+    const ai = PREFERRED_ORDER.findIndex(p=>a.toUpperCase().includes(p));
+    const bi = PREFERRED_ORDER.findIndex(p=>b.toUpperCase().includes(p));
+    if(ai!==-1&&bi!==-1) return ai-bi;
+    if(ai!==-1) return -1;
+    if(bi!==-1) return 1;
+    return a.localeCompare(b);
+  });
+}
+
+function getSignature(student) {
+  if(!student.SUBJECTS||!Object.keys(student.SUBJECTS).length) return 'No Subjects';
+  return Object.keys(student.SUBJECTS).sort().join(',');
+}
+
+function groupName(sortedSubs) {
+  const u = sortedSubs.map(s=>s.toUpperCase());
+  if(u.includes('BIOLOGY')&&u.includes('MATHEMATICS'))  return '🧬 Biology & Maths Group';
+  if(u.includes('COMPUTER SCIENCE')&&u.includes('MATHEMATICS')) return '💻 Computer Science Group';
+  if(u.includes('COMMERCE')&&u.includes('ACCOUNTANCY')) return '📊 Commerce Group';
+  if(u.includes('BIOLOGY'))   return '🔬 Pure Science (Bio) Group';
+  if(u.includes('PHYSICS'))   return '⚛️ Science Group';
+  const mains = sortedSubs.filter(s=>!['LANGUAGE','ENGLISH','TAMIL'].includes(s.toUpperCase()));
+  if(mains.length) return mains.join(' + ')+' Group';
+  return '📚 General Group';
+}
+
+function markClass(m) {
+  if(m>=75) return 'mark-high';
+  if(m>=50) return 'mark-med';
+  return 'mark-low';
+}
+
+function updateProgress(cur,tot,txt){
+  document.getElementById('progress-bar').style.width = tot?`${(cur/tot)*100}%`:'0%';
+  if(txt) document.getElementById('progress-text').textContent = txt;
+}
+
+function toggleInputCard(){
+  document.querySelector('.input-card').classList.toggle('active');
+}
+
+/* ─────────────────────────────────────────────
+   SCRAPING
+───────────────────────────────────────────── */
+async function startScraping(){
+  if(isScraping) return;
+
+  const regnoText = document.getElementById('regno-input').value.trim();
+  const dobText   = document.getElementById('dob-input').value.trim();
+  if(!regnoText||!dobText){ alert('Please enter Register Numbers and DOBs.'); return; }
+
+  const regnos = regnoText.split('\n').map(s=>s.trim()).filter(Boolean);
+  const dobs   = dobText.split('\n').map(s=>s.trim()).filter(Boolean);
+  if(!regnos.length) return;
+
+  // UI → loading
+  isScraping = true;
+  document.getElementById('scrape-btn').disabled = true;
+  document.getElementById('btn-text').textContent = 'Scraping…';
+  document.getElementById('btn-spinner').style.display = 'block';
+  if(window.innerWidth<=768) toggleInputCard();
+
+  document.getElementById('results-container').innerHTML='';
+  document.querySelector('#ranking-table tbody').innerHTML=
+    '<tr><td colspan="6" style="color:#475569;text-align:center;padding:2rem;">Fetching…</td></tr>';
+  resultsData=[];
+
+  const total = regnos.length;
+  let successMap = new Map();
+  let workQueue  = regnos.map((r,i)=>({r, d:dobs[i]||dobs[0], lastError:null}));
+
+  for(let attempt=0; attempt<=MAX_RETRIES && workQueue.length; attempt++){
+    let nextQueue=[];
+    const label = attempt===0?'Fetching':'Retrying';
+
+    for(let i=0;i<workQueue.length;i++){
+      const item=workQueue[i];
+      updateProgress(
+        attempt===0 ? i : total-workQueue.length+i,
+        total,
+        `${label} ${item.r}… (${i+1}/${workQueue.length})`
+      );
+
+      const res = await fetchOne(item.r, item.d);
+      if(res.success){
+        successMap.set(item.r+'-'+item.d, res.data);
+      } else {
+        item.lastError = res.error;
+        nextQueue.push(item);
+      }
+
+      rebuildResultsData(successMap, nextQueue, false);
+      renderGroupedTables();
+      updateRankings();
+      await sleep(400);
+    }
+    workQueue = nextQueue;
+    if(workQueue.length) await sleep(2000);
+  }
+
+  // Final — mark remaining as failed
+  if(workQueue.length){
+    rebuildResultsData(successMap, workQueue, true);
+    renderGroupedTables();
+    updateRankings();
+  }
+
+  updateProgress(total,total,`Done — ${successMap.size} fetched, ${workQueue.length} failed`);
+  isScraping=false;
+  document.getElementById('scrape-btn').disabled=false;
+  document.getElementById('btn-text').textContent='▶ Start Scraping';
+  document.getElementById('btn-spinner').style.display='none';
+}
+
+async function fetchOne(regno,dob){
+  try{
+    const r = await fetch('/api/scrape',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({regno,dob})
+    });
+    return await r.json();
+  }catch(e){ return{success:false,error:'Network Error'}; }
+}
+
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+function rebuildResultsData(successMap, failedQueue, isFinal){
+  resultsData=[];
+  for(const d of successMap.values()) resultsData.push(d);
+  for(const item of failedQueue){
+    resultsData.push({
+      REGNO:item.r, DOB:item.d,
+      NAME: isFinal?'Error':'Pending…',
+      error: isFinal?(item.lastError||'Failed'):'Retrying…',
+      SUBJECTS:{}, TOTAL:null, RESULT:null
+    });
+  }
+}
+
+/* ─────────────────────────────────────────────
+   RENDER
+───────────────────────────────────────────── */
+function renderGroupedTables(){
+  const container = document.getElementById('results-container');
+  container.innerHTML='';
+  if(!resultsData.length) return;
+
+  // Group
+  const groups={};
+  resultsData.forEach(s=>{
+    const sig = s.error ? 'Errors' : getSignature(s);
+    if(!groups[sig]) groups[sig]=[];
+    groups[sig].push(s);
+  });
+
+  // Sort: Errors last, bigger groups first
+  const sigs = Object.keys(groups).sort((a,b)=>{
+    if(a==='Errors') return 1;
+    if(b==='Errors') return -1;
+    return groups[b].length-groups[a].length;
+  });
+
+  sigs.forEach(sig=>{
+    const students = groups[sig];
+    const subjects = (sig==='Errors'||sig==='No Subjects') ? [] : sig.split(',');
+    const sortedSubs = sortSubjects([...subjects]);
+
+    const card = document.createElement('div');
+    card.className='results-card';
+    card.style.marginBottom='1.5rem';
+    card.style.borderTop='2px solid '+(sig==='Errors'?'#f87171':'rgba(99,102,241,.5)');
+
+    const gname = sig==='Errors'?'⚠️ Failed / Errors':groupName(sortedSubs);
+
+    // Table head
+    let thHtml=`<th>Reg No</th><th>Name</th><th>DOB</th>`;
+    sortedSubs.forEach(s=>thHtml+=`<th>${s}</th>`);
+    thHtml+=`<th>Total</th><th>Status</th>`;
+
+    // Table rows
+    let tbodyHtml='';
+    students.forEach(s=>{
+      if(s.error){
+        tbodyHtml+=`<tr>
+          <td>${s.REGNO}</td><td class="status-error">${s.NAME||'—'}</td>
+          <td>${s.DOB}</td>
+          <td colspan="${sortedSubs.length+2}" class="status-error">${s.error}</td>
+        </tr>`;
+      } else {
+        let tr=`<tr><td><code>${s.REGNO}</code></td><td><b>${s.NAME}</b></td><td>${s.DOB}</td>`;
+        sortedSubs.forEach(sub=>{
+          const m=s.SUBJECTS[sub];
+          const cls = m!=null?markClass(m):'';
+          tr+=`<td class="${cls}"><b>${m!=null?m:'—'}</b></td>`;
+        });
+        const sc=s.RESULT==='PASS'?'status-pass':'status-fail';
+        tr+=`<td><b>${s.TOTAL??'—'}</b></td><td><span class="${sc}">${s.RESULT||'—'}</span></td></tr>`;
+        tbodyHtml+=tr;
+      }
+    });
+
+    card.innerHTML=`
+      <div class="results-header">
+        <div>
+          <h3>${gname}</h3>
+          ${sortedSubs.length?`<p>Subjects: ${sortedSubs.join(' · ')}</p>`:''}
+        </div>
+        <span class="status-badge">${students.length} student${students.length!==1?'s':''}</span>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead><tr>${thHtml}</tr></thead>
+          <tbody>${tbodyHtml}</tbody>
+        </table>
+      </div>`;
+    container.appendChild(card);
+  });
+}
+
+function updateRankings(){
+  const valid = resultsData.filter(d=>!d.error&&d.TOTAL!=null)
+    .sort((a,b)=>(parseInt(b.TOTAL)||0)-(parseInt(a.TOTAL)||0));
+
+  const tbody=document.querySelector('#ranking-table tbody');
+  if(!valid.length){
+    tbody.innerHTML='<tr><td colspan="6" style="color:#475569;text-align:center;padding:2rem;">No data yet</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML=valid.map((s,i)=>{
+    const icon = i===0?'🥇 ':i===1?'🥈 ':i===2?'🥉 ':`#${i+1} `;
+    const subs=Object.keys(s.SUBJECTS||{}).map(k=>k.toUpperCase());
+    let grp='General';
+    if(subs.includes('BIOLOGY')&&subs.includes('MATHEMATICS')) grp='Bio+Maths';
+    else if(subs.includes('BIOLOGY')) grp='Biology';
+    else if(subs.includes('COMPUTER SCIENCE')) grp='CS';
+    else if(subs.includes('COMMERCE')) grp='Commerce';
+    else if(subs.includes('PHYSICS')) grp='Science';
+    const sc=s.RESULT==='PASS'?'status-pass':'status-fail';
+    return `<tr>
+      <td>${icon}</td>
+      <td><b>${s.NAME}</b></td>
+      <td><code>${s.REGNO}</code></td>
+      <td>${grp}</td>
+      <td><b>${s.TOTAL}</b></td>
+      <td><span class="${sc}">${s.RESULT}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+/* ─────────────────────────────────────────────
+   CSV EXPORT
+───────────────────────────────────────────── */
+function exportToCSV(){
+  const valid=resultsData.filter(d=>!d.error);
+  if(!valid.length){ alert('No data to export.'); return; }
+
+  let allSubs=new Set();
+  valid.forEach(s=>Object.keys(s.SUBJECTS||{}).forEach(k=>allSubs.add(k)));
+  const sortedSubs=sortSubjects([...allSubs]);
+
+  const headers=['Reg No','Name','DOB','Group',...sortedSubs,'Total','Result'];
+  const rows=[headers];
+
+  valid.forEach(s=>{
+    const subs=Object.keys(s.SUBJECTS||{}).map(k=>k.toUpperCase());
+    let grp='General';
+    if(subs.includes('BIOLOGY')&&subs.includes('MATHEMATICS')) grp='Bio+Maths';
+    else if(subs.includes('BIOLOGY')) grp='Biology';
+    else if(subs.includes('COMPUTER SCIENCE')) grp='CS';
+    else if(subs.includes('COMMERCE')) grp='Commerce';
+    else if(subs.includes('PHYSICS')) grp='Science';
+    rows.push([
+      s.REGNO, s.NAME, s.DOB, grp,
+      ...sortedSubs.map(sub=>(s.SUBJECTS&&s.SUBJECTS[sub]!=null)?s.SUBJECTS[sub]:'-'),
+      s.TOTAL??'-', s.RESULT??'-'
+    ]);
+  });
+
+  const csv=rows.map(r=>r.map(v=>`"${v}"`).join(',')).join('\n');
+  download(new Blob([csv],{type:'text/csv'}),'tn_hsc_results_2026.csv');
+}
+
+/* ─────────────────────────────────────────────
+   PDF EXPORT
+───────────────────────────────────────────── */
+function exportToPDF(){
+  const valid=resultsData.filter(d=>!d.error&&d.TOTAL!=null);
+  if(!valid.length){ alert('No data to export.'); return; }
+
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF('landscape','pt','a4');
+
+  // ── Cover title ──
+  doc.setFillColor(15,23,42);
+  doc.rect(0,0,doc.internal.pageSize.width,doc.internal.pageSize.height,'F');
+
+  doc.setFontSize(22);
+  doc.setTextColor(200,170,255);
+  doc.setFont('helvetica','bold');
+  doc.text('Tamil Nadu HSE(+2) Results — March 2026',40,50);
+
+  doc.setFontSize(11);
+  doc.setTextColor(148,163,184);
+  doc.setFont('helvetica','normal');
+  doc.text(`Directorate of Government Examinations  ·  Generated: ${new Date().toLocaleString()}`,40,72);
+  doc.text(`Total Students: ${valid.length}  ·  Passed: ${valid.filter(s=>s.RESULT==='PASS').length}  ·  Failed: ${valid.filter(s=>s.RESULT==='FAIL').length}`,40,90);
+
+  let curY=115;
+
+  // ── Group tables ──
+  const groups={};
+  valid.forEach(s=>{
+    const sig=getSignature(s);
+    if(!groups[sig]) groups[sig]=[];
+    groups[sig].push(s);
+  });
+
+  Object.keys(groups).forEach(sig=>{
+    const students=groups[sig];
+    const sortedSubs=sortSubjects([...sig.split(',')]);
+    const gname=groupName(sortedSubs).replace(/[🧬💻📊🔬⚛️📚]/g,'').trim();
+
+    if(curY>doc.internal.pageSize.height-80){ doc.addPage(); curY=40; }
+
+    doc.setFontSize(13);
+    doc.setTextColor(167,139,250);
+    doc.setFont('helvetica','bold');
+    doc.text(gname+` (${students.length} students)`,40,curY);
+    curY+=8;
+
+    const head=[['Reg No','Name','DOB',...sortedSubs,'Total','Result']];
+    const body=students.map(s=>[
+      s.REGNO, s.NAME, s.DOB,
+      ...sortedSubs.map(sub=>(s.SUBJECTS&&s.SUBJECTS[sub]!=null)?String(s.SUBJECTS[sub]):'-'),
+      String(s.TOTAL??'-'), s.RESULT??'-'
+    ]);
+
+    doc.autoTable({
+      head, body,
+      startY:curY,
+      theme:'grid',
+      headStyles:{fillColor:[30,41,59],textColor:[167,139,250],fontStyle:'bold',fontSize:8},
+      bodyStyles:{fillColor:[15,23,42],textColor:[248,250,252],fontSize:8},
+      alternateRowStyles:{fillColor:[20,30,50]},
+      didParseCell(data){
+        if(data.section==='body'&&data.column.index>=3){
+          const v=parseInt(data.cell.text[0]);
+          if(!isNaN(v)){
+            data.cell.styles.textColor = v>=75?[74,222,128]:v>=50?[251,191,36]:[248,113,113];
+            data.cell.styles.fontStyle='bold';
+          }
+        }
+        if(data.section==='body'){
+          const txt=(data.cell.text[0]||'').toUpperCase();
+          if(txt==='PASS') data.cell.styles.textColor=[74,222,128];
+          if(txt==='FAIL') data.cell.styles.textColor=[248,113,113];
+        }
+      },
+      margin:{left:40,right:40}
+    });
+    curY=doc.lastAutoTable.finalY+24;
+  });
+
+  // ── Rankings ──
+  if(curY>doc.internal.pageSize.height-80){ doc.addPage(); curY=40; }
+  doc.setFontSize(13);
+  doc.setTextColor(251,191,36);
+  doc.setFont('helvetica','bold');
+  doc.text('Top Rankers — All Groups',40,curY);
+  curY+=8;
+
+  const ranked=[...valid].sort((a,b)=>(parseInt(b.TOTAL)||0)-(parseInt(a.TOTAL)||0));
+  doc.autoTable({
+    head:[['Rank','Name','Reg No','Group','Total','Result']],
+    body:ranked.map((s,i)=>{
+      const subs=Object.keys(s.SUBJECTS||{}).map(k=>k.toUpperCase());
+      let grp='General';
+      if(subs.includes('BIOLOGY')&&subs.includes('MATHEMATICS')) grp='Bio+Maths';
+      else if(subs.includes('BIOLOGY')) grp='Biology';
+      else if(subs.includes('COMPUTER SCIENCE')) grp='CS';
+      else if(subs.includes('COMMERCE')) grp='Commerce';
+      else if(subs.includes('PHYSICS')) grp='Science';
+      return [i===0?'🥇':i===1?'🥈':i===2?'🥉':`#${i+1}`, s.NAME, s.REGNO, grp, String(s.TOTAL), s.RESULT];
+    }),
+    startY:curY,
+    theme:'striped',
+    headStyles:{fillColor:[30,41,59],textColor:[251,191,36],fontStyle:'bold',fontSize:8},
+    bodyStyles:{fillColor:[15,23,42],textColor:[248,250,252],fontSize:8},
+    alternateRowStyles:{fillColor:[20,30,50]},
+    margin:{left:40,right:40}
+  });
+
+  // ── Footer on every page ──
+  const pages=doc.internal.getNumberOfPages();
+  for(let p=1;p<=pages;p++){
+    doc.setPage(p);
+    doc.setFontSize(8);
+    doc.setTextColor(100,116,139);
+    doc.setFont('helvetica','normal');
+    doc.text(
+      'tnresults.nic.in — Unofficial viewer. For official records visit tnresults.nic.in',
+      40, doc.internal.pageSize.height-20
+    );
+    doc.text(`Page ${p} of ${pages}`, doc.internal.pageSize.width-80, doc.internal.pageSize.height-20);
+  }
+
+  doc.save('tn_hsc_results_2026.pdf');
+}
+
+function download(blob, name){
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=name;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+</script>
+</body>
+</html>
